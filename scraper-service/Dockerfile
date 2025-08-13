@@ -1,7 +1,7 @@
 # Puppeteer Scraper Service Dockerfile
 FROM node:18-alpine
 
-# Install dependencies for Puppeteer
+# Install dependencies for Puppeteer and Sharp
 RUN apk add --no-cache \
     chromium \
     nss \
@@ -9,11 +9,21 @@ RUN apk add --no-cache \
     freetype-dev \
     harfbuzz \
     ca-certificates \
-    ttf-freefont
+    ttf-freefont \
+    # Sharp dependencies for Alpine Linux
+    vips-dev \
+    build-base \
+    python3 \
+    make \
+    g++
 
-# Tell Puppeteer to skip installing Chromium. We'll be using the installed package.
+# Configure Puppeteer and Sharp
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    # Sharp configuration for Alpine Linux
+    SHARP_IGNORE_GLOBAL_LIBVIPS=1 \
+    SHARP_PLATFORM=linuxmusl \
+    SHARP_ARCHITECTURE=x64
 
 # Create app directory
 WORKDIR /app
@@ -21,8 +31,10 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install app dependencies
-RUN npm ci --omit=dev && npm cache clean --force
+# Install app dependencies with Sharp rebuild
+RUN npm ci --omit=dev && \
+    npm rebuild sharp && \
+    npm cache clean --force
 
 # Copy app source
 COPY src ./src
