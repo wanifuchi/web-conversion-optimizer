@@ -23,10 +23,10 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                Web Conversion Optimizer
+                WEBコンバージョン最適化ツール
               </h1>
               <p className="text-slate-600 dark:text-slate-400 mt-2">
-                AI-powered website analysis for conversion rate optimization
+                AIによる高度なWEBサイト分析でコンバージョン率を向上させます
               </p>
             </div>
             <Badge variant="outline" className="text-sm">
@@ -48,7 +48,7 @@ export default function Home() {
                   : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
               }`}
             >
-              🔍 Analyze Website
+              🔍 WEBサイト分析
             </button>
             <button
               onClick={() => setActiveTab("history")}
@@ -58,7 +58,7 @@ export default function Home() {
                   : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
               }`}
             >
-              📊 Analysis History
+              📊 分析履歴
             </button>
           </div>
         </div>
@@ -71,11 +71,11 @@ export default function Home() {
             {/* Hero Section */}
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-                Optimize Your Website's Conversion Rate
+                WEBサイトのコンバージョン率を最適化
               </h2>
               <p className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto">
-                Enter any website URL below to get AI-powered analysis with 100+ checkpoints, 
-                psychological insights, and actionable improvement recommendations.
+                URLを入力するだけで、AIが100以上のチェックポイントで分析。
+                心理的要因やユーザビリティを含む具体的な改善提案をご提供します。
               </p>
             </div>
 
@@ -87,12 +87,12 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    🧠 AI Analysis
+                    🧠 AI分析
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-600 dark:text-slate-400">
-                    Advanced AI analysis using GPT-4 and Claude for deep psychological and UX insights.
+                    最先端AIによる100以上のチェックポイント分析。心理的要因やUXの深い洞察を提供します。
                   </p>
                 </CardContent>
               </Card>
@@ -100,12 +100,12 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    📱 Mobile-First
+                    📱 モバイル対応
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-600 dark:text-slate-400">
-                    Comprehensive mobile optimization analysis with responsive design recommendations.
+                    モバイルファーストのデザイン分析とレスポンシブ対応の具体的な改善提案を行います。
                   </p>
                 </CardContent>
               </Card>
@@ -113,12 +113,12 @@ export default function Home() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    ⚡ Performance
+                    ⚡ パフォーマンス
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-slate-600 dark:text-slate-400">
-                    Core Web Vitals analysis with speed optimization and performance recommendations.
+                    Core Web Vitals分析により、速度最適化とパフォーマンス改善の具体的な提案を提供します。
                   </p>
                 </CardContent>
               </Card>
@@ -140,7 +140,7 @@ export default function Home() {
       <footer className="border-t bg-white/50 backdrop-blur-sm dark:bg-slate-900/50 mt-20">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center text-slate-600 dark:text-slate-400">
-            <p>© 2024 Web Conversion Optimizer. Powered by AI for better conversions.</p>
+            <p>© 2024 WEBコンバージョン最適化ツール. AIによる高度な分析でコンバージョン向上を実現</p>
           </div>
         </div>
       </footer>
