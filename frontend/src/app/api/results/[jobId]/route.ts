@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface RouteParams {
+  params: Promise<{ jobId: string }>
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  context: RouteParams
 ) {
   try {
-    const { jobId } = params;
+    const { jobId } = await context.params;
 
     if (!jobId) {
       return NextResponse.json(
