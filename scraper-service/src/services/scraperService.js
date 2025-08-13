@@ -335,9 +335,19 @@ class ScraperService {
     // Optimize screenshot if needed
     if (options.optimize !== false) {
       const image = await Jimp.read(screenshot);
-      return await image
-        .quality(80)
-        .getBufferAsync(Jimp.MIME_PNG);
+      
+      // PNG doesn't support quality settings, use JPEG for compressed images
+      if (options.format === 'jpeg' || options.compress) {
+        return await image
+          .quality(80)
+          .getBufferAsync(Jimp.MIME_JPEG);
+      } else {
+        // For PNG, just resize if needed for optimization
+        if (image.bitmap.width > 1920) {
+          image.resize(1920, Jimp.AUTO);
+        }
+        return await image.getBufferAsync(Jimp.MIME_PNG);
+      }
     }
 
     return screenshot;
