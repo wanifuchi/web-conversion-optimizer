@@ -214,7 +214,7 @@ class SettingsStore {
       
       Object.entries(settings).forEach(([key, value]) => {
         if (key in DEFAULT_SETTINGS) {
-          validSettings[key as keyof AppSettings] = value;
+          validSettings[key as keyof AppSettings] = value as any;
         }
       });
 

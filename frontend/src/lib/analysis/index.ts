@@ -1,4 +1,5 @@
 // Analysis Module - Main Export
+import { CHECKPOINT_STATS } from './checkpoints';
 
 export * from './types';
 export * from './engine';
