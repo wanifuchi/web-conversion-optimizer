@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const sharp = require('sharp');
+const Jimp = require('jimp');
 
 class ScraperService {
   constructor() {
@@ -334,9 +334,10 @@ class ScraperService {
 
     // Optimize screenshot if needed
     if (options.optimize !== false) {
-      return await sharp(screenshot)
-        .png({ quality: 80, compressionLevel: 6 })
-        .toBuffer();
+      const image = await Jimp.read(screenshot);
+      return await image
+        .quality(80)
+        .getBufferAsync(Jimp.MIME_PNG);
     }
 
     return screenshot;
