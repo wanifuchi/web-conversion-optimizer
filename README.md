@@ -52,51 +52,75 @@
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+
-- npm/yarn/pnpm
-
-### Frontend Setup
+### 自動セットアップ（推奨）
 ```bash
-cd frontend
-npm install
-npm run dev
+# プロジェクトをクローン
+git clone <repository-url>
+cd cv_optimization
+
+# 自動セットアップスクリプトを実行
+./setup.sh
+
+# 開発サーバーを起動
+./start-dev.sh
 ```
 
-### Environment Variables
-Create `.env.local` in the frontend directory:
+### 手動セットアップ
+```bash
+# 環境変数ファイルを作成
+cp .env.example .env.local
+
+# フロントエンドの依存関係をインストール
+cd frontend
+npm install
+cd ..
+
+# スクレイパーサービスの依存関係をインストール
+cd scraper-service
+npm install
+cd ..
+
+# 開発サーバーを起動
+cd frontend && npm run dev &
+cd scraper-service && npm run dev &
+```
+
+### 環境変数設定
+`.env.local` ファイルを編集して以下のAPIキーを設定してください：
+
 ```env
-# AI APIs
-OPENAI_API_KEY=your_openai_key
-ANTHROPIC_API_KEY=your_claude_key
+# 必須: スクレイパーサービス用APIキー（自動生成済み）
+SCRAPER_SERVICE_API_KEY=<generated-automatically>
 
-# Vercel Services
-KV_URL=your_vercel_kv_url
-KV_REST_API_URL=your_vercel_kv_rest_url
-KV_REST_API_TOKEN=your_vercel_kv_token
-POSTGRES_URL=your_postgres_url
+# オプション: より高度な分析のために
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_PAGESPEED_API_KEY=...
 
-# External Services
-GOOGLE_PAGESPEED_API_KEY=your_pagespeed_key
-CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_cloudinary_key
-CLOUDINARY_API_SECRET=your_cloudinary_secret
-
-# Scraper Service
-SCRAPER_SERVICE_URL=your_railway_scraper_url
+# プロダクション用: Vercelにデプロイ後設定
+KV_URL=redis://...
+RAILWAY_SCRAPER_URL=https://...
 ```
 
 ## 📦 Deployment
 
-### Vercel (Frontend + API)
-1. Connect this repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main
+### 🚀 プロダクションデプロイ
 
-### Railway (Scraper Service)
-1. Connect scraper-service directory to Railway
-2. Set Docker deployment
-3. Configure environment variables
+詳細なデプロイメント手順については **[DEPLOYMENT.md](DEPLOYMENT.md)** を参照してください。
+
+#### 概要
+- **フロントエンド**: Vercel（自動デプロイ対応）
+- **スクレイパーサービス**: Railway（Docker）
+- **データベース**: Vercel KV + IndexedDB
+
+#### デプロイコマンド
+```bash
+# Vercelデプロイ
+vercel --prod
+
+# Railwayデプロイ（scraper-service）
+# GitHubリポジトリ連携で自動デプロイ
+```
 
 ## 🎯 Usage
 
