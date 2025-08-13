@@ -8,11 +8,7 @@
     "NODE_ENV": "production"
   },
   "functions": {
-    "frontend/src/app/api/**/*.ts": {
-      "maxDuration": 60,
-      "memory": 1024
-    },
-    "frontend/src/app/api/analyze/*.ts": {
+    "frontend/src/app/api/analyze/route.ts": {
       "maxDuration": 300,
       "memory": 2048
     }
@@ -38,33 +34,6 @@
           "value": "camera=(), microphone=(), geolocation=()"
         }
       ]
-    },
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "s-maxage=1, stale-while-revalidate"
-        }
-      ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/frontend/api/$1"
     }
   ]
 }
