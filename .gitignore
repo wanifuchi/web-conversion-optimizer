@@ -108,6 +108,7 @@ Dockerfile*
 
 # Vercel
 .vercel
+vercel.json.backup
 
 # Railway
 .railway
