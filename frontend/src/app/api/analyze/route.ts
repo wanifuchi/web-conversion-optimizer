@@ -212,7 +212,7 @@ async function runAIAnalysis(data: any) {
   // Return the comprehensive analysis result
   return {
     overallScore: analysisResult.overallScore,
-    categories: analysisResult.categoryScores,
+    categories: analysisResult.categories,
     criticalIssues: analysisResult.criticalIssues,
     opportunities: analysisResult.opportunities,
     insights: analysisResult.insights,
