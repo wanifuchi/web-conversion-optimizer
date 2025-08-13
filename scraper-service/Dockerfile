@@ -1,7 +1,7 @@
 # Puppeteer Scraper Service Dockerfile
 FROM node:18-alpine
 
-# Install dependencies for Puppeteer
+# Install dependencies for Puppeteer and Lighthouse
 RUN apk add --no-cache \
     chromium \
     nss \
@@ -11,9 +11,11 @@ RUN apk add --no-cache \
     ca-certificates \
     ttf-freefont
 
-# Configure Puppeteer
+# Configure Puppeteer and Chrome for Lighthouse
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    CHROME_PATH=/usr/bin/chromium-browser \
+    LIGHTHOUSE_CHROMIUM_PATH=/usr/bin/chromium-browser
 
 # Create app directory
 WORKDIR /app

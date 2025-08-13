@@ -162,86 +162,62 @@ async function processAnalysis(jobId: string, url: string, options: any) {
 }
 
 async function runAIAnalysis(data: any) {
-  // This is a simplified analysis - will be enhanced with actual AI integration
+  // Enhanced AI analysis using the Analysis Engine
   const { scrapeData, lighthouseData } = data;
   
-  console.log('🧠 Running AI analysis...');
+  console.log('🧠 Running comprehensive AI analysis with 100+ checkpoints...');
 
-  // Calculate scores based on available data
-  const performanceScore = lighthouseData?.scores?.performance || 50;
-  const accessibilityScore = lighthouseData?.scores?.accessibility || 50;
-  const seoScore = lighthouseData?.scores?.seo || 50;
+  // Import Analysis Engine (dynamic import to avoid build issues)
+  const { AnalysisEngine } = await import('../../../lib/analysis/engine');
   
-  // Simple usability scoring based on page structure
-  let usabilityScore = 70;
-  if (scrapeData?.pageData?.forms?.length === 0) usabilityScore -= 10;
-  if (scrapeData?.conversionElements?.ctaButtons?.length === 0) usabilityScore -= 20;
-  if (scrapeData?.pageData?.textContent?.length < 500) usabilityScore -= 10;
-
-  // Simple conversion scoring
-  let conversionScore = 60;
-  if (scrapeData?.conversionElements?.phoneNumbers?.length > 0) conversionScore += 10;
-  if (scrapeData?.conversionElements?.emailAddresses?.length > 0) conversionScore += 5;
-  if (scrapeData?.conversionElements?.ctaButtons?.length > 0) conversionScore += 15;
-  if (scrapeData?.conversionElements?.forms?.length > 0) conversionScore += 10;
-
-  const overallScore = Math.round(
-    (performanceScore + usabilityScore + conversionScore + accessibilityScore + seoScore) / 5
-  );
-
-  // Generate issues and opportunities (simplified)
-  const criticalIssues = [];
-  const opportunities = [];
-
-  if (performanceScore < 50) {
-    criticalIssues.push({
-      title: 'Page Performance Issues',
-      description: 'ページの読み込み速度が遅く、ユーザー体験に悪影響を与えています。',
-      impact: 'high' as const,
-      category: 'Performance',
-      recommendation: 'Core Web Vitalsの改善とリソース最適化を実施してください。'
-    });
-  }
-
-  if (scrapeData?.conversionElements?.ctaButtons?.length === 0) {
-    criticalIssues.push({
-      title: 'CTAボタンが見つかりません',
-      description: '明確なCall to Actionボタンが検出されませんでした。',
-      impact: 'high' as const,
-      category: 'Conversion',
-      recommendation: '目立つ位置に明確なCTAボタンを配置してください。'
-    });
-  }
-
-  if (accessibilityScore < 80) {
-    opportunities.push({
-      title: 'アクセシビリティの改善',
-      description: 'より多くのユーザーがサイトを利用できるようアクセシビリティを向上させましょう。',
-      expectedImprovement: '10-15%のコンバージョン率向上',
-      effort: 'medium' as const
-    });
-  }
-
-  if (scrapeData?.conversionElements?.phoneNumbers?.length === 0) {
-    opportunities.push({
-      title: '電話番号の追加',
-      description: '電話でのお問い合わせを促進するため、目立つ場所に電話番号を配置しましょう。',
-      expectedImprovement: '5-10%のコンバージョン率向上',
-      effort: 'low' as const
-    });
-  }
-
-  return {
-    overallScore,
-    categories: {
-      performance: performanceScore,
-      usability: usabilityScore,
-      conversion: conversionScore,
-      accessibility: accessibilityScore,
-      seo: seoScore
+  // Prepare analysis input in the expected format
+  const analysisInput = {
+    scrapedData: {
+      url: scrapeData?.pageData?.url || scrapeData?.url || 'unknown',
+      title: scrapeData?.pageData?.title || 'Untitled',
+      description: scrapeData?.pageData?.description || '',
+      headings: scrapeData?.pageData?.headings || { h1: [], h2: [], h3: [] },
+      images: scrapeData?.pageData?.images || [],
+      links: scrapeData?.pageData?.links || [],
+      forms: scrapeData?.pageData?.forms || [],
+      ctaElements: scrapeData?.conversionElements?.ctaButtons || [],
+      socialProof: [],
+      loadTime: scrapeData?.performance?.loadTime || 0,
+      mobileOptimized: scrapeData?.pageData?.mobileOptimized || false,
+      hasSSL: scrapeData?.pageData?.hasSSL || false
     },
-    criticalIssues,
-    opportunities
+    lighthouseData: lighthouseData || {
+      scores: {
+        performance: 75,
+        accessibility: 80,
+        bestPractices: 85,
+        seo: 80
+      },
+      coreWebVitals: {},
+      opportunities: [],
+      accessibilityIssues: [],
+      seoIssues: []
+    },
+    options: {
+      includeScreenshots: true,
+      mobileAnalysis: true,
+      deepAnalysis: true
+    }
+  };
+
+  // Run the comprehensive analysis
+  const engine = new AnalysisEngine();
+  const analysisResult = await engine.analyzeWebsite(analysisInput);
+
+  // Return the comprehensive analysis result
+  return {
+    overallScore: analysisResult.overallScore,
+    categories: analysisResult.categoryScores,
+    criticalIssues: analysisResult.criticalIssues,
+    opportunities: analysisResult.opportunities,
+    insights: analysisResult.insights,
+    recommendations: analysisResult.recommendations,
+    checkpointResults: analysisResult.checkpointResults
   };
 }
 
