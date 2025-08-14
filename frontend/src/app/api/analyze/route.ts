@@ -217,7 +217,7 @@ async function runAIAnalysis(data: any) {
     opportunities: analysisResult.opportunities,
     insights: analysisResult.insights,
     recommendations: analysisResult.recommendations,
-    checkpointResults: analysisResult.checkpointResults
+    checkpoints: analysisResult.checkpoints
   };
 }
 
