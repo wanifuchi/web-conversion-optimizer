@@ -186,11 +186,17 @@ async function processAnalysis(jobId: string, url: string, options: any) {
         categories: analysisData.categories,
         criticalIssues: analysisData.criticalIssues,
         opportunities: analysisData.opportunities,
+        detailedInstructions: [], // モックデータ使用時は詳細指示を非表示
         rawData: {
           scrapeData: mockScrapeData.scrapeData,
           lighthouseData: mockScrapeData.lighthouseData
         },
-        note: 'スクレイピングエラーのためモックデータを使用して分析を実行しました'
+        note: 'スクレイピングエラーのためモックデータを使用して分析を実行しました',
+        error: {
+          type: 'scraping_failed',
+          message: '実際のページデータを取得できませんでした。一般的な分析結果を表示しています。',
+          suggestion: 'サイトがアクセス可能であることを確認し、再度お試しください。'
+        }
       };
 
       await updateJobStatus(jobId, 'completed', result);
@@ -221,6 +227,7 @@ async function processAnalysis(jobId: string, url: string, options: any) {
       categories: analysisData.categories,
       criticalIssues: analysisData.criticalIssues,
       opportunities: analysisData.opportunities,
+      detailedInstructions: analysisData.detailedInstructions || [], // 詳細改善指示を含める
       rawData: {
         scrapeData: scrapeData.scrapeData,
         lighthouseData: scrapeData.lighthouseData
