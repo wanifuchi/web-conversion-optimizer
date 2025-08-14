@@ -59,15 +59,15 @@ export const createMockAnalysisInput = (url: string = 'https://example.com') => 
       }
     ],
     ctaElements: [
-      { text: '今すぐ購入', type: 'button', position: { x: 400, y: 500 }, isVisible: true },
-      { text: '詳細を見る', type: 'link', position: { x: 600, y: 800 }, isVisible: true },
-      { text: 'カートに追加', type: 'button', position: { x: 300, y: 1200 }, isVisible: true }
+      { text: '今すぐ購入', type: 'button' as const, position: { x: 400, y: 500 }, isVisible: true },
+      { text: '詳細を見る', type: 'link' as const, position: { x: 600, y: 800 }, isVisible: true },
+      { text: 'カートに追加', type: 'button' as const, position: { x: 300, y: 1200 }, isVisible: true }
     ],
     socialProof: [
-      { type: 'testimonial', content: '商品の品質が素晴らしく、配送も早かったです。', position: 'main' },
-      { type: 'review', content: '★★★★★ 5つ星レビュー 1,234件', position: 'header' },
-      { type: 'count', content: '累計販売数10万個突破！', position: 'hero' },
-      { type: 'badge', content: 'SSL認証済み', position: 'footer' }
+      { type: 'testimonial' as const, content: '商品の品質が素晴らしく、配送も早かったです。', position: 'main' },
+      { type: 'review' as const, content: '★★★★★ 5つ星レビュー 1,234件', position: 'header' },
+      { type: 'count' as const, content: '累計販売数10万個突破！', position: 'hero' },
+      { type: 'badge' as const, content: 'SSL認証済み', position: 'footer' }
     ],
     loadTime: 1800,
     mobileOptimized: true,
