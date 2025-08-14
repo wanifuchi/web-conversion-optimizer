@@ -108,6 +108,23 @@ async function processAnalysis(jobId: string, url: string, options: any) {
       progress: 10
     });
 
+    // Take screenshot if requested
+    let screenshotUrl = null;
+    if (options.screenshot) {
+      try {
+        await updateJobStatus(jobId, 'processing', { 
+          step: 'スクリーンショットを撮影中...',
+          progress: 25
+        });
+        
+        screenshotUrl = await takeScreenshot(url, options);
+        console.log(`📸 Screenshot taken: ${screenshotUrl}`);
+      } catch (error) {
+        console.warn('⚠️ Screenshot failed:', error);
+        // Continue without screenshot
+      }
+    }
+
     // Call scraper service
     const scraperUrl = process.env.SCRAPER_SERVICE_URL || 'http://localhost:3001';
     
@@ -155,7 +172,7 @@ async function processAnalysis(jobId: string, url: string, options: any) {
         lighthouseData: null
       };
       
-      const analysisData = await runAIAnalysis(mockScrapeData);
+      const analysisData = await runAIAnalysis(mockScrapeData, screenshotUrl);
       
       await updateJobStatus(jobId, 'processing', { 
         step: 'レポートを生成中...',
@@ -189,7 +206,7 @@ async function processAnalysis(jobId: string, url: string, options: any) {
     });
 
     // Run AI analysis
-    const analysisData = await runAIAnalysis(scrapeData);
+    const analysisData = await runAIAnalysis(scrapeData, screenshotUrl);
 
     await updateJobStatus(jobId, 'processing', { 
       step: 'Generating report...',
@@ -223,7 +240,7 @@ async function processAnalysis(jobId: string, url: string, options: any) {
   }
 }
 
-async function runAIAnalysis(data: any) {
+async function runAIAnalysis(data: any, screenshotUrl: string | null = null) {
   // Enhanced AI analysis using the Analysis Engine
   const { scrapeData, lighthouseData } = data;
   
@@ -246,7 +263,8 @@ async function runAIAnalysis(data: any) {
       socialProof: [],
       loadTime: scrapeData?.performance?.loadTime || 0,
       mobileOptimized: scrapeData?.pageData?.mobileOptimized || false,
-      hasSSL: scrapeData?.pageData?.hasSSL || false
+      hasSSL: scrapeData?.pageData?.hasSSL || false,
+      screenshot: screenshotUrl || undefined
     },
     lighthouseData: lighthouseData || {
       scores: {
@@ -279,7 +297,8 @@ async function runAIAnalysis(data: any) {
     opportunities: analysisResult.opportunities,
     insights: analysisResult.insights,
     recommendations: analysisResult.recommendations,
-    checkpoints: analysisResult.checkpoints
+    checkpoints: analysisResult.checkpoints,
+    detailedInstructions: analysisResult.detailedInstructions // 詳細改善指示を追加
   };
 }
 
@@ -311,4 +330,48 @@ async function updateJobStatus(jobId: string, status: string, data: any) {
   }
   
   console.log(`📊 Job ${jobId} status updated: ${status}`);
+}
+
+// スクリーンショット撮影関数
+async function takeScreenshot(url: string, options: any): Promise<string | null> {
+  try {
+    // Puppeteerを使用したスクリーンショット撮影
+    // 本番環境では外部スクリーンショットサービスを使用することを推奨
+    const screenshotServiceUrl = process.env.SCREENSHOT_SERVICE_URL;
+    
+    if (screenshotServiceUrl) {
+      // 外部スクリーンショットサービスを使用
+      const response = await fetch(`${screenshotServiceUrl}/screenshot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          url, 
+          viewport: { width: 1200, height: 800 },
+          fullPage: true,
+          timeout: 30000
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return result.screenshotUrl;
+      }
+    }
+    
+    // フォールバック: 簡単なプレースホルダー画像URL
+    // 実際の実装ではPuppeteerやPlaywrightを使用
+    console.log('📸 Screenshot service not configured, using placeholder');
+    return generatePlaceholderScreenshot(url);
+    
+  } catch (error) {
+    console.error('Screenshot capture failed:', error);
+    return null;
+  }
+}
+
+// プレースホルダースクリーンショットURL生成
+function generatePlaceholderScreenshot(url: string): string {
+  // 実際の実装では、Base64画像やCloudinaryなどの画像サービスを使用
+  const encodedUrl = encodeURIComponent(url);
+  return `https://via.placeholder.com/1200x800/f0f0f0/333333?text=Screenshot+of+${encodedUrl}`;
 }
