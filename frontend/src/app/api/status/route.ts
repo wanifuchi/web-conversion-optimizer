@@ -46,76 +46,70 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fallback: return mock status for development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('⚠️ Using mock status for development');
+    // Fallback: return mock status when KV is not available
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+      console.log('⚠️ Using mock status (KV storage not configured)');
       
-      // Simulate different states based on jobId
-      const mockStatuses = [
-        { status: 'pending', data: null },
-        { 
-          status: 'processing', 
-          data: { 
-            step: 'Running AI analysis...', 
-            progress: 75 
-          } 
-        },
-        {
-          status: 'completed',
-          data: {
-            url: 'https://example.com',
-            timestamp: new Date().toISOString(),
-            overallScore: 78,
-            categories: {
-              performance: 85,
-              usability: 75,
-              conversion: 70,
-              accessibility: 80,
-              seo: 80
-            },
-            criticalIssues: [
-              {
-                title: 'CTAボタンの視認性不足',
-                description: 'メインのCTAボタンが目立たない色とサイズで配置されています。',
-                impact: 'high',
-                category: 'Conversion',
-                recommendation: 'より目立つ色（赤やオレンジ）を使用し、サイズを大きくしてください。'
-              },
-              {
-                title: 'モバイル表示の問題',
-                description: 'モバイルデバイスでの表示が最適化されていません。',
-                impact: 'medium',
-                category: 'Usability',
-                recommendation: 'レスポンシブデザインを改善し、モバイルファーストで最適化してください。'
-              }
-            ],
-            opportunities: [
-              {
-                title: '電話番号の追加',
-                description: '電話でのお問い合わせを促進するため、ヘッダーに電話番号を配置しましょう。',
-                expectedImprovement: '5-10%のコンバージョン率向上',
-                effort: 'low'
-              },
-              {
-                title: 'お客様の声セクション追加',
-                description: 'ユーザーの信頼度を高めるため、お客様の声や評価を追加しましょう。',
-                expectedImprovement: '10-15%のコンバージョン率向上',
-                effort: 'medium'
-              },
-              {
-                title: 'チャットサポート導入',
-                description: 'リアルタイムサポートでユーザーの疑問を即座に解決しましょう。',
-                expectedImprovement: '15-20%のコンバージョン率向上',
-                effort: 'high'
-              }
-            ]
+      // Simulate different states based on time elapsed
+      // Extract timestamp from jobId (assuming format: job_<timestamp>_<random>)
+      let elapsedSeconds = 15; // default to processing state
+      
+      try {
+        const jobIdParts = jobId.split('_');
+        if (jobIdParts.length >= 2 && jobIdParts[1]) {
+          const jobTimestamp = parseInt(jobIdParts[1]);
+          if (!isNaN(jobTimestamp)) {
+            elapsedSeconds = Math.floor((Date.now() - jobTimestamp) / 1000);
           }
         }
-      ];
+      } catch (e) {
+        console.log('Could not parse job timestamp, using default');
+      }
 
-      // Simple hash to determine mock status
-      const hash = jobId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-      const mockStatus = mockStatuses[hash % mockStatuses.length];
+      // Progress simulation based on elapsed time
+      let mockStatus;
+      
+      if (elapsedSeconds < 5) {
+        // 0-5 seconds: Pending
+        mockStatus = { 
+          status: 'pending', 
+          data: null 
+        };
+      } else if (elapsedSeconds < 30) {
+        // 5-30 seconds: Processing with increasing progress
+        const progress = Math.min(90, Math.floor((elapsedSeconds - 5) / 25 * 90));
+        const steps = [
+          'ページデータを取得中...',
+          'HTML構造を分析中...',
+          'パフォーマンス指標を測定中...',
+          'ユーザビリティを評価中...',
+          'AI による詳細分析を実行中...',
+          'レポートを生成中...'
+        ];
+        const stepIndex = Math.min(steps.length - 1, Math.floor((elapsedSeconds - 5) / 5));
+        
+        mockStatus = { 
+          status: 'processing', 
+          data: { 
+            step: steps[stepIndex], 
+            progress: progress 
+          } 
+        };
+      } else {
+        // 30+ seconds: Completed
+        // Import the analysis engine for consistent results
+        const { createMockAnalysisInput } = await import('../../../../lib/analysis');
+        const { AnalysisEngine } = await import('../../../../lib/analysis/engine');
+        
+        const engine = new AnalysisEngine();
+        const mockInput = createMockAnalysisInput('https://example.com');
+        const analysisResult = await engine.analyzeWebsite(mockInput);
+        
+        mockStatus = {
+          status: 'completed',
+          data: analysisResult
+        };
+      }
 
       return NextResponse.json({
         jobId,
