@@ -68,6 +68,17 @@ export class AnalysisEngine {
       } : undefined
     };
 
+    // エラー情報がある場合（モックデータ使用時など）は詳細指示を確実に削除
+    if (input.scrapedData.title?.includes('の分析結果') || input.scrapedData.url === 'https://example.com') {
+      analysisResult.detailedInstructions = [];
+      (analysisResult as any).error = {
+        type: 'scraping_failed',
+        message: '実際のページデータを取得できませんでした。一般的な分析結果を表示しています。',
+        suggestion: 'サイトがアクセス可能であることを確認し、再度お試しください。'
+      };
+      (analysisResult as any).note = 'スクレイピングエラーのためモックデータを使用して分析を実行しました';
+    }
+
     console.log('✅ Analysis completed successfully');
     console.log(`📈 Overall Score: ${overallScore}/100`);
     console.log(`🔴 Critical Issues: ${criticalIssues.length}`);
@@ -429,6 +440,16 @@ export class AnalysisEngine {
     
     try {
       const allInstructions: DetailedInstruction[] = [];
+      
+      // モックデータを使用している場合は詳細指示を生成しない
+      const isUsingMockData = input.scrapedData.title?.includes('の分析結果') || 
+                             input.scrapedData.url === 'https://example.com' ||
+                             !input.scrapedData.headings?.h1?.length;
+      
+      if (isUsingMockData) {
+        console.log('⚠️ Mock data detected - skipping detailed instruction generation');
+        return [];
+      }
       
       // 方法1: Checkpointの結果から具体的な改善指示を生成（新機能）
       if (checkpointResults) {

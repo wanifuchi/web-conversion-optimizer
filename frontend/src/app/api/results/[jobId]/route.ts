@@ -68,12 +68,12 @@ export async function GET(
       
       // モックデータ使用時は詳細指示を非表示にし、エラーメッセージを追加
       mockResult.detailedInstructions = [];
-      mockResult.error = {
+      (mockResult as any).error = {
         type: 'scraping_failed',
         message: '実際のページデータを取得できませんでした。一般的な分析結果を表示しています。',
         suggestion: 'サイトがアクセス可能であることを確認し、再度お試しください。'
       };
-      mockResult.note = 'スクレイピングエラーのためモックデータを使用して分析を実行しました';
+      (mockResult as any).note = 'スクレイピングエラーのためモックデータを使用して分析を実行しました';
 
       return NextResponse.json({
         jobId,
@@ -156,12 +156,12 @@ export async function GET(
       
       // モックデータ使用時は詳細指示を非表示にし、エラーメッセージを追加
       mockResult.detailedInstructions = [];
-      mockResult.error = {
+      (mockResult as any).error = {
         type: 'scraping_failed',
         message: '実際のページデータを取得できませんでした。一般的な分析結果を表示しています。',
         suggestion: 'サイトがアクセス可能であることを確認し、再度お試しください。'
       };
-      mockResult.note = 'スクレイピングエラーのためモックデータを使用して分析を実行しました';
+      (mockResult as any).note = 'スクレイピングエラーのためモックデータを使用して分析を実行しました';
 
       return NextResponse.json({
         jobId,

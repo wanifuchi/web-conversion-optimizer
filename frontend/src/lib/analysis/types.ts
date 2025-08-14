@@ -180,6 +180,12 @@ export interface AnalysisResult {
     scrapedData?: ScrapedData;
     lighthouseData?: LighthouseData;
   };
+  error?: {
+    type: string;
+    message: string;
+    suggestion: string;
+  };
+  note?: string;
 }
 
 export interface Checkpoint {
