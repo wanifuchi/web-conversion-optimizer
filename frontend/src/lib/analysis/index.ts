@@ -121,7 +121,8 @@ export const createMockAnalysisInput = (url: string = 'https://example.com') => 
     mobileAnalysis: true,
     deepAnalysis: true
   }
-});
+  };
+};
 
 console.log('📊 Analysis Engine Loaded');
 console.log(`✅ ${CHECKPOINT_STATS.total} checkpoints across ${Object.keys(CHECKPOINT_STATS.byCategory).length} categories`);
