@@ -96,18 +96,62 @@ export async function GET(request: NextRequest) {
           } 
         };
       } else {
-        // 30+ seconds: Completed
-        // Import the analysis engine for consistent results
-        const { createMockAnalysisInput } = await import('../../../../lib/analysis');
-        const { AnalysisEngine } = await import('../../../../lib/analysis/engine');
-        
-        const engine = new AnalysisEngine();
-        const mockInput = createMockAnalysisInput('https://example.com');
-        const analysisResult = await engine.analyzeWebsite(mockInput);
-        
+        // 30+ seconds: Completed with mock analysis data
         mockStatus = {
           status: 'completed',
-          data: analysisResult
+          data: {
+            url: 'https://example.com',
+            timestamp: new Date().toISOString(),
+            overallScore: 78,
+            categories: {
+              performance: 85,
+              usability: 75,
+              conversion: 70,
+              accessibility: 80,
+              seo: 80
+            },
+            criticalIssues: [
+              {
+                title: 'CTAボタンの視認性不足',
+                description: 'メインのCTAボタンが目立たない色とサイズで配置されています。',
+                impact: 'high',
+                category: 'Conversion',
+                recommendation: 'より目立つ色（赤やオレンジ）を使用し、サイズを大きくしてください。',
+                effort: 'low'
+              },
+              {
+                title: 'モバイル表示の問題',
+                description: 'モバイルデバイスでの表示が最適化されていません。',
+                impact: 'medium',
+                category: 'Usability',
+                recommendation: 'レスポンシブデザインを改善し、モバイルファーストで最適化してください。',
+                effort: 'medium'
+              }
+            ],
+            opportunities: [
+              {
+                title: '電話番号の追加',
+                description: '電話でのお問い合わせを促進するため、ヘッダーに電話番号を配置しましょう。',
+                expectedImprovement: '5-10%のコンバージョン率向上',
+                effort: 'low',
+                priority: 8
+              },
+              {
+                title: 'お客様の声セクション追加',
+                description: 'ユーザーの信頼度を高めるため、お客様の声や評価を追加しましょう。',
+                expectedImprovement: '10-15%のコンバージョン率向上',
+                effort: 'medium',
+                priority: 7
+              },
+              {
+                title: 'チャットサポート導入',
+                description: 'リアルタイムサポートでユーザーの疑問を即座に解決しましょう。',
+                expectedImprovement: '15-20%のコンバージョン率向上',
+                effort: 'high',
+                priority: 6
+              }
+            ]
+          }
         };
       }
 
