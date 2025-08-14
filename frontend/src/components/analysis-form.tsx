@@ -68,6 +68,7 @@ export function AnalysisForm({ onAnalysisComplete }: AnalysisFormProps) {
       const { jobId } = await response.json();
 
       // Poll for progress
+      console.log(`🔄 Starting polling for job: ${jobId}`);
       const pollInterval = setInterval(async () => {
         try {
           const statusResponse = await fetch(`/api/status?jobId=${jobId}`);
@@ -84,14 +85,39 @@ export function AnalysisForm({ onAnalysisComplete }: AnalysisFormProps) {
           } else if (statusData.status === "completed") {
             setProgress(100);
             setCurrentStep("分析完了！");
+            console.log(`🏁 Analysis completed for job: ${jobId}`);
             clearInterval(pollInterval);
-            onAnalysisComplete(statusData.data);
-            setIsAnalyzing(false);
+            
+            // If we have data directly, use it. Otherwise fetch from results endpoint
+            if (statusData.data) {
+              console.log('✅ 分析結果をステータスAPIから取得');
+              onAnalysisComplete(statusData.data);
+              setIsAnalyzing(false);
+            } else {
+              console.log('📋 結果データが無いため、結果APIから取得中...');
+              try {
+                const resultsResponse = await fetch(`/api/results/${jobId}`);
+                if (resultsResponse.ok) {
+                  const resultsData = await resultsResponse.json();
+                  console.log('✅ 分析結果を結果APIから取得');
+                  onAnalysisComplete(resultsData.analysisResult);
+                } else {
+                  console.error('結果API呼び出し失敗:', resultsResponse.status);
+                  throw new Error('分析結果の取得に失敗しました');
+                }
+              } catch (error) {
+                console.error('結果取得エラー:', error);
+                setError('分析結果の取得に失敗しました。もう一度お試しください。');
+              }
+              setIsAnalyzing(false);
+            }
           } else if (statusData.status === "error") {
             throw new Error(statusData.error || "分析中にエラーが発生しました");
           }
         } catch (error) {
           console.error("Status polling error:", error);
+          // Don't clear the interval on network errors, just continue polling
+          // Only clear on critical errors
         }
       }, 2000);
 

@@ -114,10 +114,43 @@ export async function GET(request: NextRequest) {
           } 
         };
       } else {
-        mockStatus = {
-          status: 'completed',
-          data: null // Will be handled by results endpoint
-        };
+        // 30+ seconds: Completed - fetch actual results
+        console.log('📋 Analysis should be completed, fetching results...');
+        
+        try {
+          // Try to get results from the results endpoint
+          const resultsResponse = await fetch(`${request.url.split('/api/status')[0]}/api/results/${jobId}`);
+          
+          if (resultsResponse.ok) {
+            const resultsData = await resultsResponse.json();
+            console.log('✅ Successfully fetched completed analysis results');
+            
+            mockStatus = {
+              status: 'completed',
+              data: resultsData.analysisResult
+            };
+          } else {
+            console.log('⚠️ Results not ready yet, continuing as processing...');
+            // If results not ready, continue processing
+            mockStatus = { 
+              status: 'processing', 
+              data: { 
+                step: 'レポートを生成中...', 
+                progress: 95 
+              } 
+            };
+          }
+        } catch (error) {
+          console.error('Error fetching results:', error);
+          // Fallback to processing if there's an error
+          mockStatus = { 
+            status: 'processing', 
+            data: { 
+              step: 'レポートを生成中...', 
+              progress: 95 
+            } 
+          };
+        }
       }
 
       return NextResponse.json({

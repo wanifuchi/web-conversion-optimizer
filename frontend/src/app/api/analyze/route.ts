@@ -160,7 +160,7 @@ async function processAnalysis(jobId: string, url: string, options: any) {
     // Update job with final result
     await updateJobStatus(jobId, 'completed', result);
 
-    console.log(`✅ Analysis completed for job ${jobId}`);
+    console.log(`✅ Analysis completed for job ${jobId} - URL: ${url}, Score: ${result.overallScore}`);
 
   } catch (error) {
     console.error(`❌ Analysis failed for job ${jobId}:`, error);

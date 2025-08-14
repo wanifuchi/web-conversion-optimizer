@@ -46,7 +46,7 @@ class InMemoryJobStorage {
     };
 
     this.jobs.set(jobId, jobData);
-    console.log(`💾 Stored job ${jobId} in memory (status: ${jobData.status})`);
+    console.log(`💾 Stored job ${jobId} in memory (status: ${jobData.status}, url: ${jobData.url})`);
   }
 
   get(jobId: string): JobData | null {
