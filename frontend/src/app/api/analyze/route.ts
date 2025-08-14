@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jobStorage } from '../../../lib/job-storage';
 
 interface AnalyzeRequest {
   url: string;
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       ...body.options
     };
 
-    // Store job in temporary storage (Vercel KV)
+    // Store job in storage (KV or in-memory fallback)
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
       try {
         await fetch(`${process.env.KV_REST_API_URL}/set/${jobId}`, {
@@ -65,6 +66,14 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error('Failed to store job in KV:', error);
       }
+    } else {
+      // Use in-memory storage as fallback
+      console.log('📦 Using in-memory job storage');
+      jobStorage.set(jobId, {
+        url: body.url,
+        status: 'pending',
+        data: { options }
+      });
     }
 
     // Start analysis in background
@@ -222,25 +231,31 @@ async function runAIAnalysis(data: any) {
 }
 
 async function updateJobStatus(jobId: string, status: string, data: any) {
-  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-    console.log(`Job ${jobId} status: ${status}`);
-    return;
-  }
-
-  try {
-    await fetch(`${process.env.KV_REST_API_URL}/set/${jobId}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.KV_REST_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        status,
-        data,
-        updatedAt: new Date().toISOString()
-      })
+  // Update in KV if available
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    try {
+      await fetch(`${process.env.KV_REST_API_URL}/set/${jobId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.KV_REST_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status,
+          data,
+          updatedAt: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Failed to update job status in KV:', error);
+    }
+  } else {
+    // Use in-memory storage as fallback
+    jobStorage.set(jobId, {
+      status: status as any,
+      data
     });
-  } catch (error) {
-    console.error('Failed to update job status:', error);
   }
+  
+  console.log(`📊 Job ${jobId} status updated: ${status}`);
 }

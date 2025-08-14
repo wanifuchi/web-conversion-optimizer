@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jobStorage } from '../../../../lib/job-storage';
 
 interface RouteParams {
   params: Promise<{ jobId: string }>
@@ -18,17 +19,48 @@ export async function GET(
       );
     }
 
-    // Check if KV storage is available - if not, use mock data
+    // Check if KV storage is available - if not, use in-memory storage
     if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.log('KV storage not available, using mock analysis data');
+      console.log('📦 Using in-memory job storage for results');
       
-      // Import the mock analysis data for development fallback
+      const jobData = jobStorage.get(jobId);
+      
+      if (jobData) {
+        if (jobData.status === 'completed') {
+          console.log(`✅ Found completed job ${jobId} in memory`);
+          return NextResponse.json({
+            jobId,
+            status: 'completed',
+            completedAt: jobData.updatedAt,
+            analysisResult: jobData.data
+          });
+        } else {
+          console.log(`⏳ Job ${jobId} not yet completed (status: ${jobData.status})`);
+          return NextResponse.json(
+            { 
+              error: 'Analysis not yet completed', 
+              jobId, 
+              status: jobData.status,
+              message: 'Analysis is still in progress'
+            },
+            { status: 202 } // Accepted but not yet completed
+          );
+        }
+      }
+      
+      // If job not found in memory, generate appropriate mock data based on URL
+      console.log('⚠️ Job not found in memory, generating mock data');
+      
+      // Try to determine the original URL from the job (this is a fallback)
+      // In a real implementation, this should be stored when the job is created
+      const mockUrl = 'https://example.com'; // Default fallback
+      
       const { createMockAnalysisInput } = await import('../../../../lib/analysis');
       const { AnalysisEngine } = await import('../../../../lib/analysis/engine');
       
       // Generate mock analysis result
       const engine = new AnalysisEngine();
-      const mockInput = createMockAnalysisInput('https://example.com');
+      const mockInput = createMockAnalysisInput(mockUrl);
       const mockResult = await engine.analyzeWebsite(mockInput);
 
       return NextResponse.json({
@@ -37,7 +69,7 @@ export async function GET(
         completedAt: new Date().toISOString(),
         analysisResult: mockResult,
         mock: true,
-        message: 'Using mock analysis data (KV storage not configured)'
+        message: 'Using mock analysis data (job not found in storage)'
       });
     }
 
