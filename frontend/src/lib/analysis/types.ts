@@ -104,6 +104,38 @@ export interface AnalysisInput {
   };
 }
 
+export interface DetailedInstruction {
+  id: string;
+  title: string;
+  location: string; // "座標(240, 450)の「お申し込み」ボタン"
+  currentState: {
+    visual: string; // "現在の状態: 灰色背景、14pxフォント"
+    technical: Record<string, string>; // CSS values
+  };
+  requiredChanges: {
+    visual: string; // "推奨変更: オレンジ背景、18pxフォント、太字"
+    technical: Record<string, string>; // New CSS values
+    reasoning: string; // Why this change
+  };
+  implementation: {
+    cssCode: string;
+    htmlChanges?: string;
+    selector: string;
+    priority: 'immediate' | 'high' | 'medium' | 'low';
+  };
+  expectedResults: {
+    primaryMetric: string;
+    improvement: string;
+    timeframe: string;
+    confidence: number;
+  };
+  visualComparison: {
+    before: string;
+    after: string;
+    keyDifferences: string[];
+  };
+}
+
 export interface AnalysisResult {
   id: string;
   url: string;
@@ -143,6 +175,7 @@ export interface AnalysisResult {
     medium_term: string[];
     long_term: string[];
   };
+  detailedInstructions: DetailedInstruction[]; // 新機能: 具体的な座標ベース改善指示
   rawData?: {
     scrapedData?: ScrapedData;
     lighthouseData?: LighthouseData;

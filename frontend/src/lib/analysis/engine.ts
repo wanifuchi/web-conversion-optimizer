@@ -9,6 +9,9 @@ import {
 } from './types';
 import { ALL_CHECKPOINTS, getCheckpointsByCategory } from './checkpoints';
 import { generateId } from '../storage/database';
+import { detailedAnalyzer, DetailedElement, SpecificImprovement } from './detailed-analyzer';
+import { coordinateAnalyzer, CoordinateIssue, ScreenshotAnalysis } from './coordinate-analyzer';
+import { improvementGenerator, DetailedInstruction } from './improvement-generator';
 
 export class AnalysisEngine {
   /**
@@ -42,6 +45,9 @@ export class AnalysisEngine {
     
     // 推奨事項の生成
     const recommendations = this.generateRecommendations(checkpointResults);
+    
+    // 詳細な改善指示の生成（新機能）
+    const detailedInstructions = await this.generateDetailedInstructions(input);
 
     const analysisResult: AnalysisResult = {
       id: generateId(),
@@ -54,6 +60,7 @@ export class AnalysisEngine {
       opportunities,
       insights,
       recommendations,
+      detailedInstructions, // 新しい詳細指示を追加
       rawData: input.options.includeScreenshots ? {
         scrapedData: input.scrapedData,
         lighthouseData: input.lighthouseData
@@ -407,6 +414,206 @@ export class AnalysisEngine {
     });
 
     return advantages.slice(0, 3);
+  }
+  
+  /**
+   * 詳細な改善指示を生成（新機能）
+   * 座標ベースの具体的な改善案を提供
+   */
+  private async generateDetailedInstructions(input: AnalysisInput): Promise<DetailedInstruction[]> {
+    console.log('🎯 Generating detailed improvement instructions...');
+    
+    try {
+      // スクレイピングデータから詳細要素を抽出
+      const detailedElements = this.extractDetailedElements(input);
+      
+      // スクリーンショット分析情報を準備
+      const screenshotAnalysis = this.createScreenshotAnalysis(input);
+      
+      // 座標ベースの問題を特定
+      const coordinateIssues = coordinateAnalyzer.identifyLocationBasedIssues(
+        detailedElements, 
+        screenshotAnalysis
+      );
+      
+      // 詳細な改善指示を生成
+      const detailedInstructions = improvementGenerator.generateDetailedInstructions(
+        detailedElements,
+        coordinateIssues
+      );
+      
+      console.log(`📋 Generated ${detailedInstructions.length} detailed instructions`);
+      return detailedInstructions;
+      
+    } catch (error) {
+      console.error('Error generating detailed instructions:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * スクレイピングデータから詳細要素情報を抽出
+   */
+  private extractDetailedElements(input: AnalysisInput): DetailedElement[] {
+    const elements: DetailedElement[] = [];
+    
+    // CTAボタンを詳細要素として追加
+    if (input.scrapedData.ctaElements) {
+      input.scrapedData.ctaElements.forEach((cta, index) => {
+        elements.push({
+          selector: `.cta-button-${index}`,
+          tagName: 'button',
+          text: cta.text,
+          position: {
+            x: cta.position.x,
+            y: cta.position.y,
+            width: 140, // デフォルト幅
+            height: 48, // デフォルト高さ
+            centerX: cta.position.x + 70,
+            centerY: cta.position.y + 24
+          },
+          styles: {
+            backgroundColor: '#E0E0E0', // デフォルト（実際は動的に取得）
+            color: '#333333',
+            fontSize: '16px',
+            fontFamily: 'Arial, sans-serif',
+            fontWeight: '400',
+            padding: '8px 16px',
+            margin: '0',
+            borderRadius: '4px',
+            border: '1px solid #CCCCCC',
+            zIndex: '1',
+            display: 'inline-block',
+            visibility: cta.isVisible ? 'visible' : 'hidden'
+          },
+          accessibility: {
+            contrastRatio: 3.5, // デフォルト（実際は計算）
+            hasAltText: false,
+            hasAriaLabel: false,
+            isFocusable: true
+          },
+          type: cta.type === 'button' ? 'button' : 'link'
+        });
+      });
+    }
+    
+    // フォーム要素を追加
+    if (input.scrapedData.forms) {
+      input.scrapedData.forms.forEach((form, formIndex) => {
+        form.fields.forEach((field, fieldIndex) => {
+          elements.push({
+            selector: `form:nth-child(${formIndex + 1}) ${field.type}[name="${field.name}"]`,
+            tagName: field.type,
+            text: field.label || field.name || '入力フィールド',
+            position: {
+              x: 50,
+              y: 200 + (fieldIndex * 80), // 推定位置
+              width: 300,
+              height: field.type === 'textarea' ? 100 : 40,
+              centerX: 200,
+              centerY: 220 + (fieldIndex * 80)
+            },
+            styles: {
+              backgroundColor: '#FFFFFF',
+              color: '#333333',
+              fontSize: '14px',
+              fontFamily: 'Arial, sans-serif',
+              fontWeight: '400',
+              padding: '8px 12px',
+              margin: '0 0 16px 0',
+              borderRadius: '4px',
+              border: '1px solid #CCCCCC',
+              zIndex: '1',
+              display: 'block',
+              visibility: 'visible'
+            },
+            accessibility: {
+              contrastRatio: 7.0,
+              hasAltText: false,
+              hasAriaLabel: field.label ? true : false,
+              isFocusable: true
+            },
+            type: 'form'
+          });
+        });
+      });
+    }
+    
+    // テキスト要素を追加（見出しから）
+    if (input.scrapedData.headings) {
+      let yPosition = 100;
+      
+      ['h1', 'h2', 'h3'].forEach(tag => {
+        const headings = input.scrapedData.headings[tag as keyof typeof input.scrapedData.headings] || [];
+        headings.forEach((heading, index) => {
+          elements.push({
+            selector: `${tag}:nth-child(${index + 1})`,
+            tagName: tag,
+            text: heading,
+            position: {
+              x: 50,
+              y: yPosition,
+              width: 600,
+              height: tag === 'h1' ? 40 : tag === 'h2' ? 32 : 24,
+              centerX: 350,
+              centerY: yPosition + (tag === 'h1' ? 20 : tag === 'h2' ? 16 : 12)
+            },
+            styles: {
+              backgroundColor: 'transparent',
+              color: '#333333',
+              fontSize: tag === 'h1' ? '32px' : tag === 'h2' ? '24px' : '18px',
+              fontFamily: 'Arial, sans-serif',
+              fontWeight: tag === 'h1' ? '700' : tag === 'h2' ? '600' : '500',
+              padding: '0',
+              margin: '0 0 16px 0',
+              borderRadius: '0',
+              border: 'none',
+              zIndex: '1',
+              display: 'block',
+              visibility: 'visible'
+            },
+            accessibility: {
+              contrastRatio: 7.0,
+              hasAltText: false,
+              hasAriaLabel: false,
+              isFocusable: false
+            },
+            type: 'text'
+          });
+          
+          yPosition += (tag === 'h1' ? 60 : tag === 'h2' ? 48 : 36);
+        });
+      });
+    }
+    
+    return elements;
+  }
+  
+  /**
+   * スクリーンショット分析情報を作成
+   */
+  private createScreenshotAnalysis(input: AnalysisInput): ScreenshotAnalysis {
+    return {
+      width: 1200, // デフォルト画面幅
+      height: 800, // デフォルト画面高さ
+      viewportSections: {
+        aboveFold: { y: 0, height: 600 },
+        belowFold: { y: 600, height: 200 }
+      },
+      heatmapAreas: {
+        high: [
+          { x: 0, y: 0, width: 800, height: 400 }, // 上部中央
+        ],
+        medium: [
+          { x: 800, y: 0, width: 400, height: 400 }, // 上部右
+          { x: 0, y: 400, width: 600, height: 200 }, // 中央左
+        ],
+        low: [
+          { x: 600, y: 400, width: 600, height: 400 }, // 右下
+          { x: 0, y: 600, width: 1200, height: 200 }, // 下部全体
+        ]
+      }
+    };
   }
 }
 
