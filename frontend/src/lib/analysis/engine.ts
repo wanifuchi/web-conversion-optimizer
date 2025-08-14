@@ -12,6 +12,7 @@ import { generateId } from '../storage/database';
 import { detailedAnalyzer, DetailedElement, SpecificImprovement } from './detailed-analyzer';
 import { coordinateAnalyzer, CoordinateIssue, ScreenshotAnalysis } from './coordinate-analyzer';
 import { improvementGenerator, DetailedInstruction } from './improvement-generator';
+import { checkpointToInstructionMapper } from './checkpoint-to-instruction-mapper';
 
 export class AnalysisEngine {
   /**
@@ -47,7 +48,7 @@ export class AnalysisEngine {
     const recommendations = this.generateRecommendations(checkpointResults);
     
     // 詳細な改善指示の生成（新機能）
-    const detailedInstructions = await this.generateDetailedInstructions(input);
+    const detailedInstructions = await this.generateDetailedInstructions(input, checkpointResults);
 
     const analysisResult: AnalysisResult = {
       id: generateId(),
@@ -420,14 +421,29 @@ export class AnalysisEngine {
    * 詳細な改善指示を生成（新機能）
    * 座標ベースの具体的な改善案を提供
    */
-  private async generateDetailedInstructions(input: AnalysisInput): Promise<DetailedInstruction[]> {
+  private async generateDetailedInstructions(
+    input: AnalysisInput, 
+    checkpointResults?: CheckpointResult[]
+  ): Promise<DetailedInstruction[]> {
     console.log('🎯 Generating detailed improvement instructions...');
     
     try {
-      // スクレイピングデータから詳細要素を抽出
-      const detailedElements = this.extractDetailedElements(input);
+      const allInstructions: DetailedInstruction[] = [];
       
-      // スクリーンショット分析情報を準備
+      // 方法1: Checkpointの結果から具体的な改善指示を生成（新機能）
+      if (checkpointResults) {
+        console.log('📊 Mapping checkpoint results to specific instructions...');
+        const checkpointInstructions = checkpointToInstructionMapper.mapCheckpointToInstructions(
+          checkpointResults,
+          input
+        );
+        allInstructions.push(...checkpointInstructions);
+        console.log(`✅ Generated ${checkpointInstructions.length} instructions from checkpoints`);
+      }
+      
+      // 方法2: 従来のDetailed Analyzerシステム（補完的な分析）
+      console.log('🔍 Running detailed element analysis...');
+      const detailedElements = this.extractDetailedElements(input);
       const screenshotAnalysis = this.createScreenshotAnalysis(input);
       
       // 座標ベースの問題を特定
@@ -436,14 +452,29 @@ export class AnalysisEngine {
         screenshotAnalysis
       );
       
-      // 詳細な改善指示を生成
-      const detailedInstructions = improvementGenerator.generateDetailedInstructions(
+      // 既存の改善指示生成システム（追加の改善案）
+      const additionalInstructions = improvementGenerator.generateDetailedInstructions(
         detailedElements,
         coordinateIssues
       );
       
-      console.log(`📋 Generated ${detailedInstructions.length} detailed instructions`);
-      return detailedInstructions;
+      // 重複を避けて統合（checkpointベースの指示を優先）
+      const existingSelectors = new Set(allInstructions.map(inst => inst.implementation.selector));
+      const uniqueAdditionalInstructions = additionalInstructions.filter(
+        inst => !existingSelectors.has(inst.implementation.selector)
+      );
+      
+      allInstructions.push(...uniqueAdditionalInstructions);
+      console.log(`✅ Added ${uniqueAdditionalInstructions.length} additional instructions`);
+      
+      // 優先度順にソート
+      allInstructions.sort((a, b) => {
+        const priorityOrder = { immediate: 4, high: 3, medium: 2, low: 1 };
+        return priorityOrder[b.implementation.priority] - priorityOrder[a.implementation.priority];
+      });
+      
+      console.log(`📋 Total generated: ${allInstructions.length} detailed instructions`);
+      return allInstructions;
       
     } catch (error) {
       console.error('Error generating detailed instructions:', error);

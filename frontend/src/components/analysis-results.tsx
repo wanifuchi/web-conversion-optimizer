@@ -321,23 +321,65 @@ export function AnalysisResults({ data }: AnalysisResultsProps) {
                     </div>
                   </div>
 
-                  {/* Current State vs Required Changes */}
-                  <div className="grid md:grid-cols-2 gap-4 mb-4">
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                      <h5 className="font-semibold text-red-800 mb-2">現在の状態</h5>
-                      <p className="text-sm text-red-700 mb-3">{instruction.currentState.visual}</p>
-                      <div className="text-xs text-red-600 font-mono bg-red-100 p-2 rounded">
-                        {Object.entries(instruction.currentState.technical).map(([key, value]) => (
-                          <div key={key}>{key}: {value}</div>
-                        ))}
+                  {/* Current State vs Required Changes - 紫テキスト風のアノテーション表示 */}
+                  <div className="space-y-4 mb-4">
+                    {/* 該当箇所の表示 */}
+                    <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-r-lg">
+                      <div className="flex items-start gap-2">
+                        <span className="inline-block w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></span>
+                        <div className="flex-1">
+                          <h5 className="font-bold text-purple-800 text-sm mb-2">📍 該当箇所の現状</h5>
+                          <p className="text-sm text-purple-700 leading-relaxed">{instruction.currentState.visual}</p>
+                          <div className="mt-3 text-xs text-purple-600 font-mono bg-purple-100 p-2 rounded border">
+                            {Object.entries(instruction.currentState.technical).map(([key, value]) => (
+                              <div key={key} className="flex justify-between">
+                                <span className="text-purple-500">{key}:</span> 
+                                <span className="font-semibold">{value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h5 className="font-semibold text-green-800 mb-2">推奨変更</h5>
-                      <p className="text-sm text-green-700 mb-3">{instruction.requiredChanges.visual}</p>
-                      <div className="text-xs text-green-600 font-mono bg-green-100 p-2 rounded">
-                        {Object.entries(instruction.requiredChanges.technical).map(([key, value]) => (
-                          <div key={key}>{key}: {value}</div>
+
+                    {/* 矢印表示 */}
+                    <div className="flex justify-center">
+                      <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-full border border-blue-200">
+                        <span className="text-blue-600 font-medium text-sm">変更</span>
+                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* 変更後の表示 */}
+                    <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg">
+                      <div className="flex items-start gap-2">
+                        <span className="inline-block w-2 h-2 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></span>
+                        <div className="flex-1">
+                          <h5 className="font-bold text-emerald-800 text-sm mb-2">✨ 改善後の状態</h5>
+                          <p className="text-sm text-emerald-700 leading-relaxed">{instruction.requiredChanges.visual}</p>
+                          <div className="mt-3 text-xs text-emerald-600 font-mono bg-emerald-100 p-2 rounded border">
+                            {Object.entries(instruction.requiredChanges.technical).map(([key, value]) => (
+                              <div key={key} className="flex justify-between">
+                                <span className="text-emerald-500">{key}:</span> 
+                                <span className="font-semibold">{value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 具体的な変更点のハイライト */}
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                      <h5 className="font-bold text-indigo-800 text-sm mb-2">📋 具体的な変更内容</h5>
+                      <div className="space-y-2">
+                        {instruction.visualComparison.keyDifferences.map((diff, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <span className="inline-block w-1.5 h-1.5 bg-indigo-400 rounded-full mt-2 flex-shrink-0"></span>
+                            <span className="text-sm text-indigo-700">{diff}</span>
+                          </div>
                         ))}
                       </div>
                     </div>
