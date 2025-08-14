@@ -18,15 +18,27 @@ export async function GET(
       );
     }
 
-    // Check if KV storage is available
+    // Check if KV storage is available - if not, use mock data
     if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      return NextResponse.json(
-        { 
-          error: 'Job storage not configured',
-          message: 'Vercel KV storage is required for result retrieval'
-        },
-        { status: 503 }
-      );
+      console.log('KV storage not available, using mock analysis data');
+      
+      // Import the mock analysis data for development fallback
+      const { createMockAnalysisInput } = await import('../../../../lib/analysis');
+      const { AnalysisEngine } = await import('../../../../lib/analysis/engine');
+      
+      // Generate mock analysis result
+      const engine = new AnalysisEngine();
+      const mockInput = createMockAnalysisInput('https://example.com');
+      const mockResult = await engine.analyzeWebsite(mockInput);
+
+      return NextResponse.json({
+        jobId,
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+        analysisResult: mockResult,
+        mock: true,
+        message: 'Using mock analysis data (KV storage not configured)'
+      });
     }
 
     // Fetch job results from Vercel KV
