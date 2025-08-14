@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jobStorage } from '../../../../lib/job-storage';
+import { extractUrlFromJobId } from '../../../../lib/job-utils';
 
 interface RouteParams {
   params: Promise<{ jobId: string }>
@@ -49,11 +50,13 @@ export async function GET(
       }
       
       // If job not found in memory, generate appropriate mock data based on URL
-      console.log('⚠️ Job not found in memory, generating mock data');
+      console.log('⚠️ Job not found in memory, extracting URL from job ID...');
       
-      // Try to determine the original URL from the job (this is a fallback)
-      // In a real implementation, this should be stored when the job is created
-      const mockUrl = 'https://example.com'; // Default fallback
+      // Extract the original URL from the job ID
+      const extractedUrl = extractUrlFromJobId(jobId);
+      const mockUrl = extractedUrl || 'https://example.com'; // Use extracted URL or fallback
+      
+      console.log(`🔍 Using URL for mock data: ${mockUrl} (extracted: ${!!extractedUrl})`);
       
       const { createMockAnalysisInput } = await import('../../../../lib/analysis');
       const { AnalysisEngine } = await import('../../../../lib/analysis/engine');
@@ -127,13 +130,19 @@ export async function GET(
     } catch (kvError) {
       console.error('KV fetch error:', kvError);
       
+      // Extract URL from job ID for fallback
+      const extractedUrl = extractUrlFromJobId(jobId);
+      const mockUrl = extractedUrl || 'https://example.com';
+      
+      console.log(`🔍 KV error fallback using URL: ${mockUrl} (extracted: ${!!extractedUrl})`);
+      
       // Import the mock analysis data for development fallback
       const { createMockAnalysisInput } = await import('../../../../lib/analysis');
       const { AnalysisEngine } = await import('../../../../lib/analysis/engine');
       
       // Generate mock analysis result
       const engine = new AnalysisEngine();
-      const mockInput = createMockAnalysisInput('https://example.com');
+      const mockInput = createMockAnalysisInput(mockUrl);
       const mockResult = await engine.analyzeWebsite(mockInput);
 
       return NextResponse.json({

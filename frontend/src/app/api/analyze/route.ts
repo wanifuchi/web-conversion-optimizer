@@ -33,8 +33,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique job ID
-    const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Generate unique job ID with encoded URL for recovery
+    const urlBase64 = Buffer.from(body.url).toString('base64').replace(/[^A-Za-z0-9]/g, '');
+    const jobId = `job_${Date.now()}_${urlBase64.slice(0, 20)}_${Math.random().toString(36).substr(2, 5)}`;
     
     console.log(`🔍 Starting analysis for ${body.url} (Job ID: ${jobId})`);
 
@@ -125,7 +126,59 @@ async function processAnalysis(jobId: string, url: string, options: any) {
     });
 
     if (!scrapeResponse.ok) {
-      throw new Error(`Scraper service error: ${scrapeResponse.status}`);
+      console.warn(`⚠️ Scraper service error: ${scrapeResponse.status}, falling back to mock analysis`);
+      
+      // Still perform analysis with mock data but using the actual URL
+      await updateJobStatus(jobId, 'processing', { 
+        step: 'スクレイピングエラー - モック分析を実行中...',
+        progress: 70
+      });
+      
+      // Create mock scrape data with the actual URL
+      const mockScrapeData = {
+        scrapeData: {
+          url,
+          pageData: {
+            url,
+            title: `${url} の分析結果`,
+            description: 'スクレイピングサービスエラーのためモックデータを使用',
+            headings: { h1: [], h2: [], h3: [] },
+            images: [],
+            links: [],
+            forms: [],
+            mobileOptimized: false,
+            hasSSL: url.startsWith('https')
+          },
+          conversionElements: { ctaButtons: [] },
+          performance: { loadTime: 3000 }
+        },
+        lighthouseData: null
+      };
+      
+      const analysisData = await runAIAnalysis(mockScrapeData);
+      
+      await updateJobStatus(jobId, 'processing', { 
+        step: 'レポートを生成中...',
+        progress: 90
+      });
+
+      const result = {
+        url,
+        timestamp: new Date().toISOString(),
+        overallScore: analysisData.overallScore,
+        categories: analysisData.categories,
+        criticalIssues: analysisData.criticalIssues,
+        opportunities: analysisData.opportunities,
+        rawData: {
+          scrapeData: mockScrapeData.scrapeData,
+          lighthouseData: mockScrapeData.lighthouseData
+        },
+        note: 'スクレイピングエラーのためモックデータを使用して分析を実行しました'
+      };
+
+      await updateJobStatus(jobId, 'completed', result);
+      console.log(`✅ Analysis completed with mock data for job ${jobId} - URL: ${url}, Score: ${result.overallScore}`);
+      return;
     }
 
     const scrapeData = await scrapeResponse.json();

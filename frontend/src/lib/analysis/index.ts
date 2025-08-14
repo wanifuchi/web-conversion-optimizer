@@ -24,15 +24,30 @@ export function validateAnalysisInput(input: any): boolean {
 }
 
 // Mock data for development
-export const createMockAnalysisInput = (url: string = 'https://example.com') => ({
-  scrapedData: {
-    url,
-    title: 'サンプルECサイト - 最高品質の商品をお届け',
-    description: '当社は20年の実績を持つ信頼できるECサイトです。高品質な商品を最安値でお届けします。無料配送、30日間返金保証付き。',
-    headings: {
-      h1: ['最高品質の商品を最安値でお届け'],
-      h2: ['人気商品ランキング', 'お客様の声', '安心の保証制度'],
-      h3: ['配送について', '返品・交換', 'よくある質問']
+export const createMockAnalysisInput = (url: string = 'https://example.com') => {
+  // Generate more realistic title and description based on URL
+  const domain = url.replace(/https?:\/\//, '').replace(/\/.*$/, '');
+  const isJobSite = domain.includes('job') || domain.includes('career') || domain.includes('recruit');
+  const title = isJobSite 
+    ? `${domain} - 求人・転職サイト` 
+    : `${domain} - WEBサイト分析結果`;
+  const description = isJobSite
+    ? 'あなたに最適な求人情報を見つけて、キャリアアップを支援します。様々な職種・業界から理想の仕事を探せます。'
+    : 'WEBコンバージョン最適化ツールによる詳細分析結果です。UI/UX、パフォーマンス、SEO等を総合的に評価しています。';
+
+  return {
+    scrapedData: {
+      url,
+      title,
+      description,
+    headings: isJobSite ? {
+      h1: ['理想の転職を実現'],
+      h2: ['新着求人情報', '人気の職種', '転職成功事例'],
+      h3: ['求人検索', '履歴書作成', 'キャリア相談']
+    } : {
+      h1: ['高品質なサービスを提供'],
+      h2: ['サービス紹介', 'お客様の声', '安心の保証'],
+      h3: ['料金について', 'よくある質問', 'サポート']
     },
     images: [
       { src: '/hero-image.jpg', alt: 'メイン商品画像', width: 800, height: 400 },
@@ -58,10 +73,14 @@ export const createMockAnalysisInput = (url: string = 'https://example.com') => 
         ]
       }
     ],
-    ctaElements: [
-      { text: '今すぐ購入', type: 'button' as const, position: { x: 400, y: 500 }, isVisible: true },
+    ctaElements: isJobSite ? [
+      { text: '求人を探す', type: 'button' as const, position: { x: 400, y: 500 }, isVisible: true },
+      { text: '会員登録', type: 'link' as const, position: { x: 600, y: 800 }, isVisible: true },
+      { text: '応募する', type: 'button' as const, position: { x: 300, y: 1200 }, isVisible: true }
+    ] : [
+      { text: '今すぐ申込', type: 'button' as const, position: { x: 400, y: 500 }, isVisible: true },
       { text: '詳細を見る', type: 'link' as const, position: { x: 600, y: 800 }, isVisible: true },
-      { text: 'カートに追加', type: 'button' as const, position: { x: 300, y: 1200 }, isVisible: true }
+      { text: 'お問い合わせ', type: 'button' as const, position: { x: 300, y: 1200 }, isVisible: true }
     ],
     socialProof: [
       { type: 'testimonial' as const, content: '商品の品質が素晴らしく、配送も早かったです。', position: 'main' },
