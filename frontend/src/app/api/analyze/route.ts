@@ -125,25 +125,82 @@ async function processAnalysis(jobId: string, url: string, options: any) {
       }
     }
 
-    // Call scraper service
-    const scraperUrl = process.env.SCRAPER_SERVICE_URL || 'http://localhost:3001';
-    
-    await updateJobStatus(jobId, 'processing', { 
-      step: 'Fetching page data...',
-      progress: 30
-    });
+    // Implement fallback chain: Railway -> Local -> Mock
+    let scrapeData = null;
+    let scrapeSource = '';
 
-    const scrapeResponse = await fetch(`${scraperUrl}/api/scrape`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url, options }),
-      signal: AbortSignal.timeout(options.timeout + 10000) // Add 10s buffer
-    });
+    // Try 1: Railway scraper service
+    const railwayUrl = process.env.SCRAPER_SERVICE_URL;
+    if (railwayUrl) {
+      try {
+        console.log('🚂 Trying Railway scraper service...');
+        await updateJobStatus(jobId, 'processing', { 
+          step: 'Railway スクレイピングサービスを試行中...',
+          progress: 30
+        });
 
-    if (!scrapeResponse.ok) {
-      console.warn(`⚠️ Scraper service error: ${scrapeResponse.status}, falling back to mock analysis`);
+        const railwayResponse = await fetch(`${railwayUrl}/api/scrape`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url, options }),
+          signal: AbortSignal.timeout(options.timeout + 5000)
+        });
+
+        if (railwayResponse.ok) {
+          scrapeData = await railwayResponse.json();
+          scrapeSource = 'Railway';
+          console.log('✅ Successfully scraped via Railway service');
+        } else {
+          console.warn(`⚠️ Railway service failed: ${railwayResponse.status} - ${railwayResponse.statusText}`);
+        }
+      } catch (railwayError) {
+        if (railwayError instanceof Error && railwayError.name === 'AbortError') {
+          console.warn('⚠️ Railway service timeout');
+        } else {
+          console.warn('⚠️ Railway service error:', railwayError);
+        }
+      }
+    }
+
+    // Try 2: Local scraper service (if Railway failed)
+    if (!scrapeData) {
+      try {
+        console.log('🏠 Trying local scraper service...');
+        await updateJobStatus(jobId, 'processing', { 
+          step: 'ローカルスクレイピングサービスを試行中...',
+          progress: 40
+        });
+
+        const localResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/scrape-local`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url, options }),
+          signal: AbortSignal.timeout(options.timeout + 10000)
+        });
+
+        if (localResponse.ok) {
+          scrapeData = await localResponse.json();
+          scrapeSource = 'Local';
+          console.log('✅ Successfully scraped via local service');
+        } else {
+          console.warn(`⚠️ Local scraper failed: ${localResponse.status} - ${localResponse.statusText}`);
+        }
+      } catch (localError) {
+        if (localError instanceof Error && localError.name === 'AbortError') {
+          console.warn('⚠️ Local scraper timeout');
+        } else {
+          console.warn('⚠️ Local scraper error:', localError);
+        }
+      }
+    }
+
+    // Try 3: Fallback to mock data (if both failed)
+    if (!scrapeData) {
+      console.warn(`⚠️ All scraping methods failed, falling back to mock analysis`);
       
       // Still perform analysis with mock data but using the actual URL
       await updateJobStatus(jobId, 'processing', { 
@@ -152,7 +209,7 @@ async function processAnalysis(jobId: string, url: string, options: any) {
       });
       
       // Create mock scrape data with the actual URL
-      const mockScrapeData = {
+      scrapeData = {
         scrapeData: {
           url,
           pageData: {
@@ -171,15 +228,26 @@ async function processAnalysis(jobId: string, url: string, options: any) {
         },
         lighthouseData: null
       };
-      
-      const analysisData = await runAIAnalysis(mockScrapeData, screenshotUrl);
-      
-      await updateJobStatus(jobId, 'processing', { 
-        step: 'レポートを生成中...',
-        progress: 90
-      });
+      scrapeSource = 'Mock';
+    }
 
-      const result = {
+    // Continue with analysis using scraped data (real or mock)
+    await updateJobStatus(jobId, 'processing', { 
+      step: 'AI分析を実行中...',
+      progress: 60
+    });
+
+    const analysisData = await runAIAnalysis(scrapeData, screenshotUrl);
+    
+    await updateJobStatus(jobId, 'processing', { 
+      step: 'レポートを生成中...',
+      progress: 90
+    });
+
+    // Format final result based on data source
+    let result;
+    if (scrapeSource === 'Mock') {
+      result = {
         url,
         timestamp: new Date().toISOString(),
         overallScore: analysisData.overallScore,
@@ -188,8 +256,8 @@ async function processAnalysis(jobId: string, url: string, options: any) {
         opportunities: analysisData.opportunities,
         detailedInstructions: [], // モックデータ使用時は詳細指示を非表示
         rawData: {
-          scrapeData: mockScrapeData.scrapeData,
-          lighthouseData: mockScrapeData.lighthouseData
+          scrapeData: scrapeData.scrapeData,
+          lighthouseData: scrapeData.lighthouseData
         },
         note: 'スクレイピングエラーのためモックデータを使用して分析を実行しました',
         error: {
@@ -198,46 +266,26 @@ async function processAnalysis(jobId: string, url: string, options: any) {
           suggestion: 'サイトがアクセス可能であることを確認し、再度お試しください。'
         }
       };
-
-      await updateJobStatus(jobId, 'completed', result);
-      console.log(`✅ Analysis completed with mock data for job ${jobId} - URL: ${url}, Score: ${result.overallScore}`);
-      return;
+    } else {
+      result = {
+        url,
+        timestamp: new Date().toISOString(),
+        overallScore: analysisData.overallScore,
+        categories: analysisData.categories,
+        criticalIssues: analysisData.criticalIssues,
+        opportunities: analysisData.opportunities,
+        detailedInstructions: analysisData.detailedInstructions || [], // 詳細改善指示を含める
+        rawData: {
+          scrapeData: scrapeData.scrapeData,
+          lighthouseData: scrapeData.lighthouseData
+        },
+        dataSource: scrapeSource // 実際に使用されたデータソースを追記
+      };
     }
-
-    const scrapeData = await scrapeResponse.json();
-
-    await updateJobStatus(jobId, 'processing', { 
-      step: 'Running AI analysis...',
-      progress: 60
-    });
-
-    // Run AI analysis
-    const analysisData = await runAIAnalysis(scrapeData, screenshotUrl);
-
-    await updateJobStatus(jobId, 'processing', { 
-      step: 'Generating report...',
-      progress: 90
-    });
-
-    // Format final result
-    const result = {
-      url,
-      timestamp: new Date().toISOString(),
-      overallScore: analysisData.overallScore,
-      categories: analysisData.categories,
-      criticalIssues: analysisData.criticalIssues,
-      opportunities: analysisData.opportunities,
-      detailedInstructions: analysisData.detailedInstructions || [], // 詳細改善指示を含める
-      rawData: {
-        scrapeData: scrapeData.scrapeData,
-        lighthouseData: scrapeData.lighthouseData
-      }
-    };
 
     // Update job with final result
     await updateJobStatus(jobId, 'completed', result);
-
-    console.log(`✅ Analysis completed for job ${jobId} - URL: ${url}, Score: ${result.overallScore}`);
+    console.log(`✅ Analysis completed for job ${jobId} - URL: ${url}, Source: ${scrapeSource}, Score: ${result.overallScore}`);
 
   } catch (error) {
     console.error(`❌ Analysis failed for job ${jobId}:`, error);
