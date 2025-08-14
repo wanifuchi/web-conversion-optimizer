@@ -68,20 +68,19 @@ export function AnalysisForm({ onAnalysisComplete }: AnalysisFormProps) {
       const { jobId } = await response.json();
 
       // Poll for progress
-      let currentStepIndex = 0;
       const pollInterval = setInterval(async () => {
         try {
           const statusResponse = await fetch(`/api/status?jobId=${jobId}`);
           const statusData = await statusResponse.json();
 
           if (statusData.status === "processing") {
-            const stepProgress = Math.min(currentStepIndex / analysisSteps.length * 100, 90);
-            setProgress(stepProgress);
-            setCurrentStep(analysisSteps[currentStepIndex] || "分析中...");
+            // Use actual progress from API response
+            const apiProgress = statusData.data?.progress || 0;
+            const apiStep = statusData.data?.step || "分析中...";
             
-            if (currentStepIndex < analysisSteps.length - 1) {
-              currentStepIndex++;
-            }
+            console.log(`📊 進捗更新: ${apiProgress}% - ${apiStep}`);
+            setProgress(apiProgress);
+            setCurrentStep(apiStep);
           } else if (statusData.status === "completed") {
             setProgress(100);
             setCurrentStep("分析完了！");
