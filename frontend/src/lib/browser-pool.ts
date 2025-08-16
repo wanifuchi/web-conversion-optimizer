@@ -1,4 +1,4 @@
-import puppeteer, { Browser, Page, BrowserConnectOptions, BrowserLaunchArgumentOptions, LaunchOptions } from 'puppeteer';
+import puppeteer, { Browser, Page, LaunchOptions } from 'puppeteer';
 
 interface BrowserPoolOptions {
   maxPages?: number;

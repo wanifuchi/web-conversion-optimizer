@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { browserPool } from '@/lib/browser-pool';
 import { cacheManager, CACHE_TTL } from '@/lib/cache/cache-manager';
-import { createRequestLogger, PerformanceLogger } from '@/lib/logger';
-import { ValidationError, TimeoutError, withRetry, handleApiError } from '@/lib/error-handler';
 
 // Next.js Route Cacheを1時間に設定
-export const revalidate = CACHE_TTL.SCRAPE;
+export const revalidate = 3600;
 
 interface ScrapeRequest {
   url: string;
@@ -270,9 +268,9 @@ export async function POST(request: NextRequest) {
     if (page) {
       try {
         await browserPool.releasePage(page);
-        logger.debug('ページをプールに返却');
+        console.log('✅ ページをプールに返却');
       } catch (releaseError) {
-        logger.error({ error: releaseError }, 'ページ返却エラー');
+        console.error('ページ返却エラー:', releaseError);
       }
     }
   }
