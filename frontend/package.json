@@ -6,14 +6,18 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "browser-echo": "node ~/.claude/browser-echo/setup.js"
   },
   "dependencies": {
     "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lighthouse": "^12.8.1",
     "next": "15.4.6",
+    "pino": "^9.9.0",
+    "pino-pretty": "^13.1.1",
     "puppeteer": "^24.16.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",

@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import { browserPool } from '@/lib/browser-pool';
+import { cacheManager, CACHE_TTL } from '@/lib/cache/cache-manager';
+import { createRequestLogger, PerformanceLogger } from '@/lib/logger';
+import { ValidationError, TimeoutError, withRetry, handleApiError } from '@/lib/error-handler';
+
+// Next.js Route Cacheを1時間に設定
+export const revalidate = CACHE_TTL.SCRAPE;
 
 interface ScrapeRequest {
   url: string;
@@ -63,7 +69,7 @@ interface ScrapeResult {
 }
 
 export async function POST(request: NextRequest) {
-  let browser = null;
+  let page = null;
 
   try {
     const body: ScrapeRequest = await request.json();
@@ -94,28 +100,19 @@ export async function POST(request: NextRequest) {
       ...body.options
     };
 
-    // Launch Puppeteer browser
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-extensions',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-        '--ignore-certificate-errors',
-        '--ignore-ssl-errors',
-        '--ignore-certificate-errors-spki-list',
-        '--ignore-certificate-errors-ssl-errors'
-      ]
-    });
+    // キャッシュキーを生成
+    const cacheKey = cacheManager.generateUrlKey('scrape', body.url, options);
+    
+    // キャッシュから取得を試みる
+    const cachedResult = cacheManager.get<ScrapeResult>(cacheKey);
+    if (cachedResult) {
+      console.log(`✅ キャッシュからデータを返却: ${body.url}`);
+      return NextResponse.json(cachedResult);
+    }
 
-    const page = await browser.newPage();
+    // ブラウザプールからページを取得
+    console.log('🔄 ブラウザプールからページを取得中...');
+    page = await browserPool.acquirePage();
     
     // Set viewport for mobile or desktop
     if (options.mobile) {
@@ -248,6 +245,10 @@ export async function POST(request: NextRequest) {
       lighthouseData: null // Lighthouse data would require additional implementation
     };
 
+    // 結果をキャッシュに保存
+    cacheManager.set(cacheKey, result, CACHE_TTL.SCRAPE);
+    console.log(`💾 キャッシュに保存: ${body.url}`);
+
     return NextResponse.json(result);
 
   } catch (error) {
@@ -266,12 +267,12 @@ export async function POST(request: NextRequest) {
     );
 
   } finally {
-    if (browser) {
+    if (page) {
       try {
-        await browser.close();
-        console.log('🔒 Browser closed');
-      } catch (closeError) {
-        console.error('Error closing browser:', closeError);
+        await browserPool.releasePage(page);
+        logger.debug('ページをプールに返却');
+      } catch (releaseError) {
+        logger.error({ error: releaseError }, 'ページ返却エラー');
       }
     }
   }
